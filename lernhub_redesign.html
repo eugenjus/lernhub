@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WST LernHub</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,800;1,9..144,300&display=swap');
+
+:root {
+  --bg: #f0ede8;
+  --surface: #faf9f7;
+  --surface2: #ece9e3;
+  --border: #d8d3ca;
+  --accent: #003976;
+  --accent2: #e84e0f;
+  --text: #1a1512;
+  --muted: #7a7368;
+  --success: #2d7a4f;
+  --warning: #e84e0f;
+  --wst-blue: #003976;
+  --wst-orange: #e84e0f;
+  --wst-lightblue: #dce8f5;
+  --sidebar-bg: #0d1f3c;
+  --sidebar-accent: #e84e0f;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 248px;
+  background: var(--sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.sidebar::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 200px;
+  background: linear-gradient(to top, rgba(232,78,15,0.08), transparent);
+  pointer-events: none;
+}
+
+.logo {
+  font-family: 'Fraunces', serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  padding: 1.8rem 1.6rem 1.6rem;
+  letter-spacing: -0.5px;
+  color: white;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.logo-badge {
+  display: inline-block;
+  background: var(--sidebar-accent);
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 0.2rem;
+  position: relative;
+  top: -0.1rem;
+}
+
+.nav-section {
+  padding: 1.4rem 1.2rem 0.4rem;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.25);
+  font-weight: 600;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.7rem 1.6rem;
+  cursor: pointer;
+  color: rgba(255,255,255,0.55);
+  font-size: 0.88rem;
+  font-weight: 500;
+  border-left: 2px solid transparent;
+  transition: all 0.18s;
+  user-select: none;
+  margin: 0.1rem 0;
+  border-radius: 0;
+}
+
+.nav-item:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.06); }
+.nav-item.active { 
+  color: white; 
+  border-left-color: var(--sidebar-accent); 
+  background: rgba(232,78,15,0.12);
+}
+.nav-item .icon { width: 18px; text-align: center; font-size: 0.9rem; opacity: 0.85; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 1.2rem 1.6rem;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.3);
+  position: relative;
+  z-index: 1;
+}
+
+/* MAIN */
+.main {
+  margin-left: 248px;
+  min-height: 100vh;
+}
+
+/* TOPBAR */
+.topbar {
+  position: sticky;
+  top: 0;
+  background: rgba(240,237,232,0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0.9rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 50;
+}
+
+.topbar-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--wst-blue);
+  font-style: italic;
+}
+
+.search-wrap {
+  position: relative;
+  width: 260px;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.48rem 1rem 0.48rem 2.2rem;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.84rem;
+  outline: none;
+  transition: all 0.2s;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.search-wrap input:focus { border-color: var(--wst-blue); box-shadow: 0 0 0 3px rgba(0,57,118,0.08); }
+.search-wrap input::placeholder { color: var(--muted); }
+
+.search-icon {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* CONTENT */
+.content {
+  padding: 2rem 2.2rem;
+}
+
+.view { display: none; }
+.view.active { display: block; }
+
+/* SECTION HEADER */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.6rem;
+}
+
+.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--wst-blue);
+  letter-spacing: -0.5px;
+}
+
+/* SUBJECT CARDS */
+.subjects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.subject-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.4rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.subject-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--wst-orange), #ff7b45);
+  opacity: 0.85;
+}
+
+.subject-card:hover {
+  border-color: rgba(0,57,118,0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,57,118,0.1), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.subject-icon {
+  font-size: 1.8rem;
+  margin-bottom: 0.9rem;
+  display: block;
+}
+
+.subject-name {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  color: var(--text);
+}
+
+.subject-meta {
+  font-size: 0.77rem;
+  color: var(--muted);
+}
+
+/* FILE LIST */
+.files-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.back-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.45rem 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.84rem;
+  font-weight: 500;
+  transition: all 0.15s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.back-btn:hover { border-color: var(--wst-blue); background: white; }
+
+.files-table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.files-table-header {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr 120px 100px 80px;
+  padding: 0.7rem 1.3rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  background: var(--surface2);
+}
+
+.file-row {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr 120px 100px 80px;
+  padding: 0.85rem 1.3rem;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  transition: background 0.12s;
+  font-size: 0.875rem;
+}
+
+.file-row:last-child { border-bottom: none; }
+.file-row:hover { background: #fdfcfa; }
+
+.file-icon { font-size: 1.1rem; }
+.file-name { font-weight: 500; word-break: break-word; }
+.file-size, .file-date { color: var(--muted); font-size: 0.78rem; }
+
+.file-actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
+
+.action-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.action-btn:hover { color: var(--text); border-color: var(--wst-blue); background: white; }
+.action-btn.del:hover { color: var(--accent2); border-color: var(--accent2); background: #fff5f2; }
+
+/* EMPTY STATE */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--muted);
+}
+
+.empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.35;
+}
+
+/* UPLOAD ZONE */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  padding: 2.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 1.5rem;
+  position: relative;
+  background: rgba(255,255,255,0.4);
+}
+
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--wst-blue);
+  background: rgba(0,57,118,0.04);
+}
+
+.upload-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.upload-icon { font-size: 2rem; margin-bottom: 0.8rem; color: var(--wst-blue); opacity: 0.7; }
+.upload-text { font-size: 0.95rem; color: var(--text); margin-bottom: 0.3rem; font-weight: 500; }
+.upload-hint { font-size: 0.8rem; color: var(--muted); }
+
+/* PROGRESS BAR */
+.progress-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 0.8rem;
+  display: none;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--wst-blue), var(--wst-orange));
+  width: 0%;
+  transition: width 0.3s;
+  border-radius: 2px;
+}
+
+/* ADMIN - SUBJECT FORM */
+.form-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.8rem;
+  margin-bottom: 1.4rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.form-card-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 1.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text);
+}
+
+label {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+  margin-top: 1rem;
+}
+
+label:first-of-type { margin-top: 0; }
+
+input[type="text"], select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+input[type="text"]:focus, select:focus { border-color: var(--wst-blue); background: white; box-shadow: 0 0 0 3px rgba(0,57,118,0.07); }
+input[type="text"]::placeholder { color: var(--muted); }
+
+select option { background: var(--surface2); }
+
+/* EMOJI PICKER */
+.emoji-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.emoji-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.15s;
+}
+
+.emoji-btn:hover, .emoji-btn.selected {
+  border-color: var(--wst-blue);
+  background: var(--wst-lightblue);
+}
+
+/* BUTTONS */
+.btn {
+  padding: 0.58rem 1.2rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.18s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  letter-spacing: -0.1px;
+}
+
+.btn-primary {
+  background: var(--wst-blue);
+  color: white;
+  box-shadow: 0 1px 3px rgba(0,57,118,0.25);
+}
+
+.btn-primary:hover { background: #002d60; box-shadow: 0 3px 8px rgba(0,57,118,0.3); }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.btn-ghost:hover { border-color: var(--wst-blue); background: white; }
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid rgba(232,78,15,0.3);
+  color: var(--accent2);
+}
+
+.btn-danger:hover { background: #fff5f2; border-color: var(--accent2); }
+
+.btn-group { display: flex; gap: 0.6rem; margin-top: 1.2rem; flex-wrap: wrap; }
+
+/* SUBJECT ADMIN LIST */
+.subject-admin-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.3rem;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+
+.subject-admin-row:hover { background: #fdfcfa; }
+.subject-admin-row:last-child { border-bottom: none; }
+.subject-emoji { font-size: 1.2rem; width: 2rem; text-align: center; }
+.subject-admin-info { flex: 1; }
+.subject-admin-name { font-weight: 600; font-size: 0.9rem; }
+.subject-admin-meta { font-size: 0.74rem; color: var(--muted); margin-top: 0.15rem; }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: #1a1512;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: white;
+  padding: 0.85rem 1.3rem;
+  border-radius: 12px;
+  font-size: 0.86rem;
+  transform: translateY(90px);
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 320px;
+  font-weight: 500;
+}
+
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.error { background: #3d1209; border-color: rgba(232,78,15,0.4); }
+.toast.success { background: #0d2b1a; border-color: rgba(45,122,79,0.4); }
+
+/* LOADING */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--wst-blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--muted);
+  gap: 0.8rem;
+  font-size: 0.9rem;
+}
+
+/* BADGE */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--wst-lightblue);
+  color: var(--wst-blue);
+  border: 1px solid #bdd0e9;
+}
+
+/* STATS ROW */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.3rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.stat-value {
+  font-family: 'Fraunces', serif;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--wst-blue);
+  line-height: 1;
+}
+
+.stat-label { font-size: 0.77rem; color: var(--muted); margin-top: 0.3rem; font-weight: 500; }
+
+/* FILE TYPE COLORS */
+.ft-pptx { color: #e8722a; }
+.ft-pdf  { color: #e84040; }
+.ft-docx { color: #2b7cd3; }
+.ft-xlsx { color: #1d7d45; }
+.ft-img  { color: #a855f7; }
+.ft-other { color: var(--muted); }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .sidebar { width: 200px; }
+  .main { margin-left: 200px; }
+  .files-table-header,
+  .file-row { grid-template-columns: 2rem 1fr 90px; }
+  .file-size, .file-date { display: none; }
+}
+
+@media (max-width: 560px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP ACCENT BAR -->
+<div style="position:fixed;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#e84e0f,#ff7040);z-index:9999;"></div>
+<aside class="sidebar" style="top:3px;">
+  <div class="logo">WST <span class="logo-badge">Hub</span></div>
+  <div class="nav-section">Navigation</div>
+  <div class="nav-item active" onclick="switchView('home')">
+    <span class="icon">&#127968;</span> Übersicht
+  </div>
+  <div class="nav-item" onclick="switchView('admin')">
+    <span class="icon">&#9881;</span> Admin
+  </div>
+  <div class="nav-item" onclick="switchView('groupchat')" id="nav-groupchat" style="position:relative;">
+    <span class="icon">⚙️</span> Einstellungen
+    <span id="chat-badge" style="display:none;position:absolute;right:1rem;background:var(--sidebar-accent);color:white;border-radius:99px;font-size:0.6rem;padding:0.1rem 0.4rem;font-weight:700;">neu</span>
+  </div>
+  <div class="sidebar-footer">
+    <div id="user-email-display" style="margin-bottom:0.6rem;font-size:0.74rem;color:rgba(255,255,255,0.4);word-break:break-all;"></div>
+    <a href="#" onclick="handleLogout();return false;" style="color:rgba(255,255,255,0.4);font-size:0.78rem;text-decoration:none;transition:color 0.15s;" onmouseover="this.style.color='rgba(255,255,255,0.8)'" onmouseout="this.style.color='rgba(255,255,255,0.4)'">Abmelden →</a>
+  </div>
+</aside>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2.8rem;width:100%;max-width:400px;box-shadow:0 16px 48px rgba(0,0,0,0.1);">
+    <div style="text-align:center;margin-bottom:2.2rem;">
+      <div style="font-family:'Fraunces',serif;font-size:2rem;font-weight:800;color:var(--sidebar-bg);letter-spacing:-1px;">WST <span style="color:var(--wst-orange);">LernHub</span></div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-top:0.4rem;font-weight:500;">Wirtschaftsschule Thun</div>
+    </div>
+    <div id="login-error" style="display:none;background:#fff5f2;color:#c0320a;padding:0.75rem 1rem;border-radius:10px;font-size:0.84rem;margin-bottom:1rem;border:1px solid rgba(232,78,15,0.2);"></div>
+    <div id="login-form">
+      <div style="margin-bottom:1rem;">
+        <label style="font-size:0.74rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:0.4rem;">E-Mail</label>
+        <input type="email" id="auth-email" placeholder="name@wst.ch" style="width:100%;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:1.6rem;">
+        <label style="font-size:0.74rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:0.4rem;">Passwort</label>
+        <input type="password" id="auth-password" placeholder="Passwort" style="width:100%;box-sizing:border-box;" onkeydown="if(event.key==='Enter')handleLogin()">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:0.75rem;" onclick="handleLogin()">Anmelden</button>
+      <div style="text-align:center;margin-top:1.2rem;">
+        <a href="#" onclick="showRegister();return false;" style="font-size:0.83rem;color:var(--wst-blue);font-weight:500;">Noch kein Konto? Registrieren →</a>
+      </div>
+    </div>
+    <div id="register-form" style="display:none;">
+      <div style="margin-bottom:1rem;">
+        <label style="font-size:0.74rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:0.4rem;">E-Mail</label>
+        <input type="email" id="reg-email" placeholder="name@wst.ch" style="width:100%;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:1.6rem;">
+        <label style="font-size:0.74rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:0.4rem;">Passwort (min. 6 Zeichen)</label>
+        <input type="password" id="reg-password" placeholder="Passwort" style="width:100%;box-sizing:border-box;" onkeydown="if(event.key==='Enter')handleRegister()">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:0.75rem;" onclick="handleRegister()">Konto erstellen</button>
+      <div style="text-align:center;margin-top:1.2rem;">
+        <a href="#" onclick="showLogin();return false;" style="font-size:0.83rem;color:var(--wst-blue);font-weight:500;">← Zurück zur Anmeldung</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" style="padding-top:3px;">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Übersicht</div>
+
+  </div>
+
+  <div class="content">
+
+    <!-- HOME VIEW -->
+    <div id="view-home" class="view active">
+      <div id="home-subjects">
+        <div class="stats-row" id="stats-row">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-subjects">-</div>
+            <div class="stat-label">Fächer</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-files">-</div>
+            <div class="stat-label">Dateien</div>
+          </div>
+        </div>
+        <div class="section-header">
+          <div class="section-title">Alle Fächer</div>
+        </div>
+        <div id="subjects-grid" class="subjects-grid"></div>
+      </div>
+
+      <div id="home-files" style="display:none;">
+        <div class="files-header">
+          <button class="back-btn" onclick="backToSubjects()">&#8592; Zurück</button>
+          <div style="font-family:'DM Sans',sans-serif;font-size:1.1rem;font-weight:700;" id="files-subject-title"></div>
+        </div>
+        <div id="subject-summary-card" style="display:none;background:var(--wst-lightblue);border:1px solid #bdd0e9;border-radius:12px;padding:1.1rem 1.3rem;margin-bottom:1.2rem;">
+          <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--wst-blue);font-weight:700;margin-bottom:0.4rem;opacity:0.8;">KI-Zusammenfassung</div>
+          <div id="subject-summary-text" style="font-size:0.9rem;line-height:1.6;color:var(--text);"></div>
+        </div>
+        <div style="display:flex;gap:0.8rem;align-items:center;margin-bottom:1.2rem;">
+          <button class="btn btn-primary" onclick="openChatWindow(currentSubjectId, document.getElementById('files-subject-title').textContent)" style="display:flex;align-items:center;gap:0.5rem;">
+            🤖 KI fragen
+          </button>
+          <div class="search-wrap" style="flex:1;margin-bottom:0;">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="files-search-input" placeholder="Dateien suchen..." oninput="filterFiles()">
+          </div>
+        </div>
+        <div id="files-list"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN VIEW -->
+    <div id="view-groupchat" class="view">
+      <!-- Tabs -->
+      <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:1.5rem;">
+        <button id="settings-tab-btn" onclick="switchSettingsTab('settings')" style="padding:0.7rem 1.5rem;border:none;background:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;font-size:0.88rem;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-2px;">⚙️ Einstellungen</button>
+        <button id="chat-tab-btn" onclick="switchSettingsTab('chat')" style="padding:0.7rem 1.5rem;border:none;background:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;font-size:0.88rem;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;position:relative;">
+          💬 Gruppen-Chat
+          <span id="chat-badge" style="display:none;position:absolute;top:6px;right:6px;background:#e53e3e;color:white;border-radius:99px;font-size:0.6rem;padding:0.1rem 0.35rem;font-weight:700;">neu</span>
+        </button>
+      </div>
+
+      <!-- Settings Panel -->
+      <div id="settings-panel">
+        <div style="max-width:600px;">
+          <div style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:1.2rem;">Konto</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem;margin-bottom:1rem;">
+            <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.3rem;">Angemeldet als</div>
+            <div id="settings-email" style="font-weight:600;color:var(--text);"></div>
+            <button onclick="handleLogout()" class="btn" style="margin-top:0.8rem;border:1px solid var(--border);color:var(--muted);">Abmelden</button>
+          </div>
+
+          <div style="font-size:1rem;font-weight:700;color:var(--text);margin:1.5rem 0 1.2rem;">Passwort ändern</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem;margin-bottom:1rem;">
+            <input type="password" id="new-password" placeholder="Neues Passwort (min. 6 Zeichen)" style="width:100%;box-sizing:border-box;margin-bottom:0.8rem;">
+            <button class="btn btn-primary" onclick="changePassword()">Passwort ändern</button>
+            <div id="pw-msg" style="font-size:0.82rem;margin-top:0.5rem;display:none;"></div>
+          </div>
+
+          <div style="font-size:1rem;font-weight:700;color:var(--text);margin:1.5rem 0 1.2rem;">Darstellung</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem;margin-bottom:1rem;">
+            <div style="font-size:0.85rem;color:var(--muted);margin-bottom:0.8rem;">Schriftgrösse</div>
+            <div style="display:flex;gap:0.5rem;">
+              <button class="btn" onclick="setFontSize('small')" style="border:1px solid var(--border);">Klein</button>
+              <button class="btn" onclick="setFontSize('medium')" style="border:1px solid var(--border);">Normal</button>
+              <button class="btn" onclick="setFontSize('large')" style="border:1px solid var(--border);">Gross</button>
+            </div>
+          </div>
+
+          <div style="font-size:1rem;font-weight:700;color:var(--text);margin:1.5rem 0 1.2rem;">Über WST LernHub</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem;font-size:0.85rem;color:var(--muted);line-height:1.7;">
+            WST LernHub ist eine KI-gestützte Lernplattform der Wirtschaftsschule Thun.<br>
+            Hochgeladene Unterlagen werden automatisch analysiert und für Prüfungsfragen aufbereitet.<br><br>
+            <strong style="color:var(--text);">Version:</strong> 1.0 &nbsp;·&nbsp;
+            <strong style="color:var(--text);">Schule:</strong> Wirtschaftsschule Thun (WST)
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Panel -->
+      <div id="chat-panel" style="display:none;max-width:720px;display:none;flex-direction:column;height:calc(100vh - 200px);">
+        <div id="group-messages" style="flex:1;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.2rem;display:flex;flex-direction:column;gap:0.8rem;min-height:300px;max-height:calc(100vh - 320px);"></div>
+        <div style="display:flex;gap:0.7rem;margin-top:0.8rem;">
+          <input type="text" id="group-input" placeholder="Nachricht schreiben..." style="flex:1;" onkeydown="if(event.key==='Enter')sendGroupMessage()">
+          <button class="btn btn-primary" onclick="sendGroupMessage()">Senden</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-admin" class="view">
+      <!-- ADD SUBJECT -->
+      <div class="form-card">
+        <div class="form-card-title">&#43; Neues Fach anlegen</div>
+        <label>Name des Fachs</label>
+        <input type="text" id="admin-subject-name" placeholder="z.B. Biologie, Mathe, Geschichte...">
+        <label>Emoji / Icon</label>
+        <div class="emoji-grid">
+          <button class="emoji-btn selected" data-emoji="💻" onclick="selectEmoji(this)">💻</button>
+          <button class="emoji-btn" data-emoji="🗄️" onclick="selectEmoji(this)">🗄️</button>
+          <button class="emoji-btn" data-emoji="🌐" onclick="selectEmoji(this)">🌐</button>
+          <button class="emoji-btn" data-emoji="🔒" onclick="selectEmoji(this)">🔒</button>
+          <button class="emoji-btn" data-emoji="📊" onclick="selectEmoji(this)">📊</button>
+          <button class="emoji-btn" data-emoji="⚙️" onclick="selectEmoji(this)">⚙️</button>
+          <button class="emoji-btn" data-emoji="📱" onclick="selectEmoji(this)">📱</button>
+          <button class="emoji-btn" data-emoji="🧩" onclick="selectEmoji(this)">🧩</button>
+          <button class="emoji-btn" data-emoji="📡" onclick="selectEmoji(this)">📡</button>
+          <button class="emoji-btn" data-emoji="🤖" onclick="selectEmoji(this)">🤖</button>
+          <button class="emoji-btn" data-emoji="📋" onclick="selectEmoji(this)">📋</button>
+          <button class="emoji-btn" data-emoji="🔧" onclick="selectEmoji(this)">🔧</button>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="createSubject()">Fach anlegen</button>
+          <button class="btn btn-ghost" onclick="clearSubjectForm()">Zurücksetzen</button>
+        </div>
+      </div>
+
+      <!-- UPLOAD FILES -->
+      <div class="form-card">
+        <div class="form-card-title">&#8679; Dateien hochladen</div>
+        <label>Fach auswählen</label>
+        <select id="upload-subject-select">
+          <option value="">-- Fach wählen --</option>
+        </select>
+        <label style="margin-top:1rem;">Dateien</label>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" multiple onchange="handleFileSelect(event)">
+          <div class="upload-icon">&#8679;</div>
+          <div class="upload-text">Dateien hier ablegen oder klicken</div>
+          <div class="upload-hint">PPTX, PDF, DOCX, XLSX, Bilder und mehr</div>
+          <div class="progress-bar" id="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+        </div>
+        <div id="upload-queue"></div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="uploadFiles()" id="upload-btn" style="background:var(--wst-orange);">Hochladen</button>
+        </div>
+      </div>
+
+      <!-- MANAGE SUBJECTS -->
+      <div class="form-card">
+        <div class="form-card-title">&#128193; Fächer verwalten</div>
+        <div class="files-table" id="admin-subjects-list"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- CHAT MODAL (fullscreen) -->
+<div id="chat-modal" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;flex-direction:column;">
+  <!-- Chat Header -->
+  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 1.5rem;display:flex;align-items:center;gap:0.8rem;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
+    <button onclick="closeChat()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:0.4rem 0.9rem;cursor:pointer;color:var(--text);font-size:0.84rem;font-family:'DM Sans',sans-serif;font-weight:500;display:flex;align-items:center;gap:0.4rem;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--wst-blue)'" onmouseout="this.style.borderColor='var(--border)'">&#8592; Zurück</button>
+    <span style="font-size:1.2rem;">🤖</span>
+    <div>
+      <div style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:1rem;" id="chat-subject-name"></div>
+      <div style="font-size:0.73rem;color:var(--muted);">KI-Tutor basierend auf deinen Unterlagen</div>
+    </div>
+    <button onclick="clearChatHistory()" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:10px;padding:0.4rem 0.9rem;cursor:pointer;color:var(--muted);font-size:0.79rem;font-family:'DM Sans',sans-serif;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--wst-orange)';this.style.color='var(--wst-orange)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">🗑 Chat löschen</button>
+  </div>
+  <!-- Messages -->
+  <div id="chat-messages" style="flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;max-width:860px;width:100%;margin:0 auto;box-sizing:border-box;"></div>
+  <!-- Input -->
+  <div style="background:var(--surface);border-top:1px solid var(--border);padding:1rem 1.5rem;flex-shrink:0;">
+    <div style="max-width:860px;margin:0 auto;display:flex;gap:0.7rem;">
+      <input type="text" id="chat-input" placeholder="Stell eine Frage zu deinen Unterlagen..." style="flex:1;background:var(--surface2);" onkeydown="if(event.key==='Enter')sendChatMessage()">
+      <button class="btn btn-primary" onclick="sendChatMessage()">Senden</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.chat-msg { display:flex; }
+.chat-msg.user { justify-content:flex-end; }
+.chat-bubble {
+  max-width:80%;
+  padding:0.8rem 1.1rem;
+  border-radius:14px;
+  font-size:0.875rem;
+  line-height:1.65;
+  font-family: 'DM Sans', sans-serif;
+}
+.chat-msg.assistant .chat-bubble {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-bottom-left-radius:4px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.05);
+}
+.chat-msg.user .chat-bubble {
+  background:var(--sidebar-bg);
+  color:white;
+  border-bottom-right-radius:4px;
+}
+.typing { display:flex; align-items:center; gap:4px; padding:0.8rem 1rem; }
+.typing span {
+  width:7px; height:7px; border-radius:50%;
+  background:var(--muted);
+  animation:bounce 1.2s infinite;
+}
+.typing span:nth-child(2) { animation-delay:0.2s; }
+.typing span:nth-child(3) { animation-delay:0.4s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+</style>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://crpnudrzmbjoyzosjutz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_gHP0KSMPlEGX3diLvzVF8Q_i0Rfnutw';
+const BUCKET = 'files';
+
+let supabaseClient = null;
+let currentUser = null;
+
+// ─── API HELPERS ─────────────────────────────────────────────────────────────
+let headers = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY,
+  'Content-Type': 'application/json'
+};
+
+function updateHeaders(token) {
+  headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + (token || SUPABASE_KEY),
+    'Content-Type': 'application/json'
+  };
+}
+
+async function dbGet(table, filters = '') {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}&order=created_at.desc`, { headers });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function dbPost(table, body) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: { ...headers, 'Prefer': 'return=representation' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function dbDelete(table, id) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: 'DELETE', headers
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+async function storageUpload(path, file) {
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
+    body: file
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function storageDelete(path) {
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  return res.ok;
+}
+
+function storageUrl(path) {
+  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let subjects = [];
+let currentSubjectId = null;
+let selectedEmoji = '💻';
+let selectedFiles = [];
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function init() {
+  // Init Supabase client
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Check auth state
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    await onLogin(session);
+  } else {
+    showLoginScreen();
+  }
+
+  // Listen for auth changes
+  supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+    if (session) {
+      await onLogin(session);
+    } else {
+      showLoginScreen();
+    }
+  });
+}
+
+async function onLogin(session) {
+  currentUser = session.user;
+  updateHeaders(session.access_token);
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('user-email-display').textContent = currentUser.email;
+  await loadSubjects();
+  renderHomeSubjects();
+  renderAdminSubjectSelect();
+  renderAdminSubjectsList();
+}
+
+function showLoginScreen() {
+  currentUser = null;
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function showRegister() {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('register-form').style.display = 'block';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+function showLogin() {
+  document.getElementById('register-form').style.display = 'none';
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+async function handleLogin() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!email || !password) { errEl.textContent = 'Bitte E-Mail und Passwort eingeben.'; errEl.style.display = 'block'; return; }
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; }
+}
+
+async function handleRegister() {
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!email || !password) { errEl.textContent = 'Bitte E-Mail und Passwort eingeben.'; errEl.style.display = 'block'; return; }
+  const { error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; }
+  else { errEl.style.background = '#dcfce7'; errEl.style.color = '#16a34a'; errEl.textContent = 'Konto erstellt! Du kannst dich jetzt anmelden.'; errEl.style.display = 'block'; showLogin(); }
+}
+
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  subjects = [];
+  showLoginScreen();
+}
+
+async function ensureTables() {
+  // Try to create tables via RPC if they don't exist
+  // We use a simple approach: just try to query and handle errors gracefully
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/subjects?limit=1`, { headers });
+  } catch(e) {}
+}
+
+async function loadSubjects() {
+  try {
+    subjects = await dbGet('subjects', 'select=id,name,emoji,file_count,created_at,ai_summary,extracted_text&user_id=eq.' + currentUser.id);
+  } catch(e) {
+    subjects = [];
+    // Table might not exist yet
+  }
+}
+
+// ─── VIEWS ───────────────────────────────────────────────────────────────────
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  const titles = { home: 'Übersicht', admin: 'Admin', groupchat: 'Gruppen-Chat' };
+  document.getElementById('topbar-title').textContent = titles[view] || view;
+  if (view === 'home') { renderHomeSubjects(); backToSubjects(); }
+  if (view === 'admin') { renderAdminSubjectSelect(); renderAdminSubjectsList(); }
+  if (view === 'groupchat') { 
+    switchSettingsTab('settings');
+    if (document.getElementById('settings-email')) {
+      document.getElementById('settings-email').textContent = currentUser?.email || '';
+    }
+  }
+}
+
+// ─── HOME ─────────────────────────────────────────────────────────────────────
+function renderHomeSubjects(filter = '') {
+  const grid = document.getElementById('subjects-grid');
+  const filtered = subjects.filter(s => s.name.toLowerCase().includes(filter.toLowerCase()));
+
+  document.getElementById('stat-subjects').textContent = subjects.length;
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+      <div class="empty-icon">📭</div>
+      <p style="font-size:0.95rem;font-weight:500;">Noch keine Fächer vorhanden</p>
+      <p style="font-size:0.82rem;margin-top:0.4rem;">Gehe in den Admin-Bereich und lege dein erstes Fach an.</p>
+    </div>`;
+    document.getElementById('stat-files').textContent = '0';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(s => `
+    <div class="subject-card" onclick="openSubject('${s.id}', '${escAttr(s.name)}', '${escAttr(s.emoji || '💻')}')">
+      <div class="subject-icon">${s.emoji || '💻'}</div>
+      <div class="subject-name">${escHtml(s.name)}</div>
+      <div class="subject-meta">${s.file_count || 0} Datei${s.file_count !== 1 ? 'en' : ''}</div>
+    </div>
+  `).join('');
+}
+
+let allLoadedFiles = [];
+
+async function openSubject(id, name, emoji) {
+  currentSubjectId = id;
+  document.getElementById('home-subjects').style.display = 'none';
+  document.getElementById('home-files').style.display = 'block';
+  document.getElementById('files-subject-title').textContent = (emoji || '💻') + ' ' + name;
+  document.getElementById('topbar-title').textContent = name;
+  document.getElementById('files-search-input').value = '';
+  document.getElementById('subject-summary-card').style.display = 'none';
+
+  const el = document.getElementById('files-list');
+  el.innerHTML = `<div class="loading-overlay"><div class="spinner"></div> Lade Dateien...</div>`;
+
+  try {
+    const files = await dbGet('files', `subject_id=eq.${id}`);
+    allLoadedFiles = files;
+    renderFilesList(files, el);
+    document.getElementById('stat-files').textContent = files.length;
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state"><p style="color:var(--accent2)">Fehler beim Laden der Dateien.</p><p style="font-size:0.8rem;margin-top:0.5rem;">${e.message}</p></div>`;
+  }
+
+  // Auto-generate summary
+  const subject = subjects.find(s => s.id === id);
+  generateSubjectSummary(id, name, subject);
+}
+
+async function generateSubjectSummary(id, name, subject) {
+  const summaryCard = document.getElementById('subject-summary-card');
+  const summaryText = document.getElementById('subject-summary-text');
+
+  // Show cached summary immediately if available
+  if (subject?.ai_summary) {
+    summaryCard.style.display = 'block';
+    summaryText.innerHTML = escHtml(subject.ai_summary) +
+      ` <a href="#" onclick="regenerateSummary('${id}','${name.replace(/'/g,"\'")}');return false;" style="font-size:0.75rem;color:var(--muted);margin-left:0.5rem;">↻ neu</a>`;
+    return;
+  }
+
+  summaryCard.style.display = 'block';
+  summaryText.innerHTML = '<span style="color:var(--muted);font-size:0.85rem;">⏳ Erstelle Zusammenfassung...</span>';
+  await fetchAndSaveSummary(id, name, subject);
+}
+
+async function regenerateSummary(id, name) {
+  const subject = subjects.find(s => s.id === id);
+  const summaryText = document.getElementById('subject-summary-text');
+  summaryText.innerHTML = '<span style="color:var(--muted);font-size:0.85rem;">⏳ Erstelle neue Zusammenfassung...</span>';
+  await fetchAndSaveSummary(id, name, subject);
+}
+
+async function fetchAndSaveSummary(id, name, subject) {
+  const summaryCard = document.getElementById('subject-summary-card');
+  const summaryText = document.getElementById('subject-summary-text');
+
+  let context = '';
+  if (subject?.extracted_text) {
+    context = subject.extracted_text.slice(0, 8000);
+  } else {
+    try {
+      const files = await dbGet('files', `subject_id=eq.${id}`);
+      context = files.map(f => f.name).join(', ');
+    } catch(e) { context = name; }
+  }
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/claude-proxy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 200,
+        system: 'Du bist ein Lernassistent. Fasse in 2-3 Sätzen sehr kurz zusammen worum es in diesem Fach/Modul geht. Nur auf Deutsch, keine Aufzählungen.',
+        messages: [{ role: 'user', content: `Fach: "${name}". Dateien/Inhalt: ${context}. Worum geht es in diesem Fach?` }]
+      })
+    });
+    const data = await res.json();
+    if (data.content?.[0]?.text) {
+      const summary = data.content[0].text;
+      summaryText.innerHTML = escHtml(summary) +
+        ` <a href="#" onclick="regenerateSummary('${id}','${name.replace(/'/g,"\'")}');return false;" style="font-size:0.75rem;color:var(--muted);margin-left:0.5rem;">↻ neu</a>`;
+      // Save to DB
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/subjects?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: { ...headers, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ ai_summary: summary })
+        });
+        if (subject) subject.ai_summary = summary;
+      } catch(e) { console.warn('Summary save failed:', e); }
+    } else {
+      summaryCard.style.display = 'none';
+    }
+  } catch(e) {
+    summaryCard.style.display = 'none';
+  }
+}
+
+function filterFiles() {
+  const q = document.getElementById('files-search-input').value.toLowerCase();
+  const filtered = allLoadedFiles.filter(f => f.name.toLowerCase().includes(q));
+  renderFilesList(filtered, document.getElementById('files-list'));
+}
+
+function renderFilesList(files, container) {
+  if (!files.length) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📂</div>
+      <p style="font-size:0.95rem;font-weight:500;">Noch keine Dateien</p>
+      <p style="font-size:0.82rem;margin-top:0.4rem;">Lade im Admin-Bereich Dateien für dieses Fach hoch.</p>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="files-table">
+      <div class="files-table-header">
+        <div></div>
+        <div>Name</div>
+        <div>Größe</div>
+        <div>Datum</div>
+        <div></div>
+      </div>
+      ${files.map(f => `
+        <div class="file-row">
+          <div class="file-icon">${fileIcon(f.name)}</div>
+          <div class="file-name">${escHtml(f.name)}</div>
+          <div class="file-size">${formatSize(f.size)}</div>
+          <div class="file-date">${formatDate(f.created_at)}</div>
+          <div class="file-actions">
+            <a href="${storageUrl(f.storage_path)}" target="_blank" download>
+              <button class="action-btn" title="Herunterladen">&#8675;</button>
+            </a>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function backToSubjects() {
+  currentSubjectId = null;
+  document.getElementById('home-subjects').style.display = 'block';
+  document.getElementById('home-files').style.display = 'none';
+  document.getElementById('topbar-title').textContent = 'Übersicht';
+}
+
+// ─── ADMIN ────────────────────────────────────────────────────────────────────
+function selectEmoji(btn) {
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedEmoji = btn.dataset.emoji;
+}
+
+function clearSubjectForm() {
+  document.getElementById('admin-subject-name').value = '';
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelector('.emoji-btn[data-emoji="📚"]').classList.add('selected');
+  selectedEmoji = '💻';
+}
+
+async function createSubject() {
+  const name = document.getElementById('admin-subject-name').value.trim();
+  if (!name) { toast('Bitte einen Namen eingeben!', 'error'); return; }
+
+  try {
+    const result = await dbPost('subjects', { name, emoji: selectedEmoji, file_count: 0, user_id: currentUser.id });
+    subjects = [result[0], ...subjects];
+    renderHomeSubjects();
+    renderAdminSubjectSelect();
+    renderAdminSubjectsList();
+    clearSubjectForm();
+    toast('Fach angelegt!', 'success');
+  } catch(e) {
+    toast('Fehler: ' + e.message, 'error');
+  }
+}
+
+async function deleteSubject(id) {
+  if (!confirm('Fach und alle Dateien löschen?')) return;
+  try {
+    await dbDelete('subjects', id);
+    subjects = subjects.filter(s => s.id !== id);
+    renderHomeSubjects();
+    renderAdminSubjectSelect();
+    renderAdminSubjectsList();
+    toast('Fach gelöscht.', 'success');
+  } catch(e) {
+    toast('Fehler: ' + e.message, 'error');
+  }
+}
+
+function renderAdminSubjectSelect() {
+  const sel = document.getElementById('upload-subject-select');
+  sel.innerHTML = '<option value="">-- Fach wählen --</option>' +
+    subjects.map(s => `<option value="${s.id}">${s.emoji || ''} ${escHtml(s.name)}</option>`).join('');
+}
+
+function renderAdminSubjectsList() {
+  const el = document.getElementById('admin-subjects-list');
+  if (!subjects.length) {
+    el.innerHTML = `<div style="padding:1.5rem;color:var(--muted);font-size:0.88rem;">Noch keine Fächer angelegt.</div>`;
+    return;
+  }
+  el.innerHTML = subjects.map(s => `
+    <div class="subject-admin-row">
+      <div class="subject-emoji">${s.emoji || '💻'}</div>
+      <div class="subject-admin-info">
+        <div class="subject-admin-name">${escHtml(s.name)}</div>
+        <div class="subject-admin-meta">${s.file_count || 0} Datei${s.file_count !== 1 ? 'en' : ''}</div>
+      </div>
+      <button class="btn btn-danger" style="padding:0.35rem 0.8rem;font-size:0.78rem;" onclick="deleteSubject('${s.id}')">Löschen</button>
+    </div>
+  `).join('');
+}
+
+// ─── FILE UPLOAD ──────────────────────────────────────────────────────────────
+function handleFileSelect(event) {
+  selectedFiles = Array.from(event.target.files);
+  renderUploadQueue();
+}
+
+// Drag & Drop
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('dragover');
+  selectedFiles = Array.from(e.dataTransfer.files);
+  renderUploadQueue();
+});
+
+function renderUploadQueue() {
+  const el = document.getElementById('upload-queue');
+  if (!selectedFiles.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div style="margin-top:0.8rem;display:flex;flex-wrap:wrap;gap:0.4rem;">` +
+    selectedFiles.map((f, i) => `
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.7rem;font-size:0.8rem;display:flex;align-items:center;gap:0.4rem;">
+        ${fileIcon(f.name)} ${escHtml(f.name)} <span style="color:var(--muted)">(${formatSize(f.size)})</span>
+        <span style="cursor:pointer;color:var(--muted);margin-left:0.3rem;" onclick="removeQueueFile(${i})">&#10005;</span>
+      </div>`
+    ).join('') + `</div>`;
+}
+
+function removeQueueFile(i) {
+  selectedFiles.splice(i, 1);
+  renderUploadQueue();
+}
+
+async function uploadFiles() {
+  const subjectId = document.getElementById('upload-subject-select').value;
+  if (!subjectId) { toast('Bitte zuerst ein Fach wählen!', 'error'); return; }
+  if (!selectedFiles.length) { toast('Keine Dateien ausgewählt!', 'error'); return; }
+
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;"></div> Hochladen...';
+
+  const progressBar = document.getElementById('progress-bar');
+  const progressFill = document.getElementById('progress-fill');
+  progressBar.style.display = 'block';
+
+  let done = 0;
+  const total = selectedFiles.length;
+
+  for (const file of selectedFiles) {
+    try {
+      const path = `${subjectId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      await storageUpload(path, file);
+      await dbPost('files', {
+        subject_id: subjectId,
+        user_id: currentUser.id,
+        name: file.name,
+        storage_path: path,
+        size: file.size
+      });
+      done++;
+      progressFill.style.width = (done / total * 100) + '%';
+
+      // Update file count
+      const subject = subjects.find(s => s.id == subjectId);
+      if (subject) subject.file_count = (subject.file_count || 0) + 1;
+
+    } catch(e) {
+      toast('Fehler bei ' + file.name + ': ' + e.message, 'error');
+    }
+  }
+
+  setTimeout(() => {
+    progressBar.style.display = 'none';
+    progressFill.style.width = '0%';
+  }, 1000);
+
+  selectedFiles = [];
+  renderUploadQueue();
+  renderAdminSubjectsList();
+  renderHomeSubjects();
+  document.getElementById('stat-subjects').textContent = subjects.length;
+
+  btn.disabled = false;
+  btn.innerHTML = 'Hochladen';
+  document.getElementById('file-input').value = '';
+
+  toast(`${done} von ${total} Datei${total !== 1 ? 'en' : ''} hochgeladen!`, 'success');
+}
+
+// ─── SEARCH ───────────────────────────────────────────────────────────────────
+function handleSearch() {
+  const q = document.getElementById('search-input').value;
+  if (document.getElementById('view-home').classList.contains('active')) {
+    renderHomeSubjects(q);
+  }
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function fileIcon(name) {
+  const ext = (name || '').split('.').pop().toLowerCase();
+  const map = {
+    pptx: '<span class="ft-pptx">📊</span>',
+    ppt:  '<span class="ft-pptx">📊</span>',
+    pdf:  '<span class="ft-pdf">📄</span>',
+    docx: '<span class="ft-docx">📝</span>',
+    doc:  '<span class="ft-docx">📝</span>',
+    xlsx: '<span class="ft-xlsx">📈</span>',
+    xls:  '<span class="ft-xlsx">📈</span>',
+    png:  '<span class="ft-img">🖼️</span>',
+    jpg:  '<span class="ft-img">🖼️</span>',
+    jpeg: '<span class="ft-img">🖼️</span>',
+    mp4:  '🎬', mp3: '🎵', zip: '🗜️'
+  };
+  return map[ext] || '<span class="ft-other">📎</span>';
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '-';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+function formatDate(iso) {
+  if (!iso) return '-';
+  return new Date(iso).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'2-digit' });
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function escAttr(s) {
+  return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.innerHTML = (type === 'success' ? '✓ ' : type === 'error' ? '✕ ' : 'ℹ ') + escHtml(msg);
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ─── AI CHAT ─────────────────────────────────────────────────────────────────
+const ANTHROPIC_KEY = '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';
+let chatSubjectId = null;
+let chatSubjectName = null;
+let chatHistory = [];
+let subjectFiles = [];
+let extractedContext = '';
+
+// ─── TEXT EXTRACTION ─────────────────────────────────────────────────────────
+async function extractTextFromFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const url = storageUrl(file.storage_path);
+
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+
+    if (['pptx', 'ppt', 'docx', 'doc', 'xlsx', 'xls'].includes(ext)) {
+      return await extractFromOfficeFile(blob, file.name);
+    } else if (ext === 'pdf') {
+      return `[PDF: ${file.name} - Inhalt kann nicht direkt extrahiert werden]`;
+    } else if (['txt', 'md', 'csv'].includes(ext)) {
+      return await blob.text();
+    }
+    return `[${file.name}: Dateiformat wird nicht unterstützt]`;
+  } catch(e) {
+    return `[Fehler beim Lesen von ${file.name}: ${e.message}]`;
+  }
+}
+
+async function extractFromOfficeFile(blob, filename) {
+  try {
+    const zip = await JSZip.loadAsync(blob);
+    const texts = [];
+
+    // PPTX: slide XMLs
+    const slideFiles = Object.keys(zip.files).filter(f =>
+      f.match(/ppt\/slides\/slide\d+\.xml/) ||
+      f.match(/word\/document\.xml/) ||
+      f.match(/xl\/sharedStrings\.xml/)
+    ).sort();
+
+    for (const path of slideFiles) {
+      const xml = await zip.files[path].async('string');
+      const text = xml
+        .replace(/<a:t>/g, ' ')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'")
+        .replace(/\s+/g, ' ').trim();
+      if (text.length > 10) texts.push(text);
+    }
+
+    if (texts.length === 0) return `[${filename}: Kein Text gefunden]`;
+    return `=== ${filename} ===\n${texts.join('\n')}`;
+  } catch(e) {
+    return `[Fehler beim Extrahieren von ${filename}: ${e.message}]`;
+  }
+}
+
+async function loadChatHistory(subjectId, container) {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30*24*60*60*1000).toISOString();
+    const msgs = await dbGet('chat_messages', `subject_id=eq.${subjectId}&created_at=gte.${thirtyDaysAgo}&order=created_at.asc`);
+    chatHistory = msgs.map(m => ({ role: m.role, content: m.content }));
+    container.innerHTML = '';
+    for (const m of msgs) {
+      const formatted = m.content
+        .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g,'<em>$1</em>')
+        .replace(/\n/g,'<br>');
+      appendChatBubble(container, m.role, formatted);
+    }
+  } catch(e) { chatHistory = []; }
+}
+
+async function saveChatMessage(subjectId, role, content) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/chat_messages`, {
+      method: 'POST',
+      headers: { ...headers, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ subject_id: subjectId, role, content })
+    });
+  } catch(e) { console.warn('Save msg failed:', e); }
+}
+
+async function clearChatHistory() {
+  if (!confirm('Chat-Verlauf löschen?')) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/chat_messages?subject_id=eq.${chatSubjectId}`, {
+      method: 'DELETE', headers
+    });
+    chatHistory = [];
+    const el = document.getElementById('chat-messages');
+    el.innerHTML = '';
+    appendChatBubble(el, 'assistant', '🗑 Chat-Verlauf gelöscht. Stell mir eine neue Frage!');
+  } catch(e) { alert('Fehler beim Löschen.'); }
+}
+
+async function openChatWindow(subjectId, subjectName) {
+  chatSubjectId = subjectId;
+  chatSubjectName = subjectName;
+  chatHistory = [];
+  extractedContext = '';
+
+  try { subjectFiles = await dbGet('files', `subject_id=eq.${subjectId}`); }
+  catch(e) { subjectFiles = []; }
+
+  document.getElementById('chat-modal').style.display = 'flex';
+  document.getElementById('chat-subject-name').textContent = subjectName;
+
+  // Check if we already have cached text
+  const subject = subjects.find(s => s.id === subjectId);
+  if (subject?.extracted_text) {
+    extractedContext = subject.extracted_text;
+    const charCount = extractedContext.length;
+    document.getElementById('chat-messages').innerHTML = `
+      <div class="chat-msg assistant">
+        <div class="chat-bubble">
+          ⚡ Unterlagen bereits eingelesen (${charCount.toLocaleString()} Zeichen).<br><br>
+          Stell mir eine Prüfungsfrage und ich antworte direkt!
+          <br><br><span style="font-size:0.78rem;color:var(--muted);">
+          <a href="#" onclick="reExtract('${subjectId}','${subjectName.replace(/'/g,"\'")}')" style="color:var(--accent);">Neu einlesen</a> falls du neue Dateien hochgeladen hast.</span>
+        </div>
+      </div>`;
+    document.getElementById('chat-input').focus();
+    return;
+  }
+
+  document.getElementById('chat-messages').innerHTML = `
+    <div class="chat-msg assistant">
+      <div class="chat-bubble">
+        ⏳ Lese ${subjectFiles.length} Datei${subjectFiles.length!==1?'en':''}... einen Moment!
+      </div>
+    </div>`;
+
+  await doExtract(subjectId, subjectName);
+}
+
+async function reExtract(subjectId, subjectName) {
+  document.getElementById('chat-messages').innerHTML = `
+    <div class="chat-msg assistant">
+      <div class="chat-bubble">⏳ Lese Dateien neu ein...</div>
+    </div>`;
+  await doExtract(subjectId, subjectName);
+}
+
+async function doExtract(subjectId, subjectName) {
+  const extracts = [];
+  for (const file of subjectFiles) {
+    const text = await extractTextFromFile(file);
+    if (text) extracts.push(text);
+  }
+  extractedContext = extracts.join('\n\n');
+  const charCount = extractedContext.length;
+
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/subjects?id=eq.${subjectId}`, {
+      method: 'PATCH',
+      headers: { ...headers, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ extracted_text: extractedContext })
+    });
+    const subject = subjects.find(s => s.id === subjectId);
+    if (subject) subject.extracted_text = extractedContext;
+  } catch(e) { console.warn('Cache save failed:', e); }
+
+  document.getElementById('chat-messages').innerHTML = `
+    <div class="chat-msg assistant">
+      <div class="chat-bubble">
+        ✅ Ich habe <strong>${subjectFiles.length} Datei${subjectFiles.length!==1?'en':''}</strong> gelesen (${charCount.toLocaleString()} Zeichen) und gespeichert.<br><br>
+        Beim nächsten Mal lade ich sofort! Stell mir jetzt eine Prüfungsfrage.
+      </div>
+    </div>`;
+  document.getElementById('chat-input').focus();
+}
+
+function closeChat() {
+  document.getElementById('chat-modal').style.display = 'none';
+  chatHistory = [];
+  extractedContext = '';
+}
+
+function appendChatBubble(container, role, htmlContent) {
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  div.innerHTML = `<div class="chat-bubble">${htmlContent}</div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  const messagesEl = document.getElementById('chat-messages');
+  appendChatBubble(messagesEl, 'user', escHtml(msg));
+  chatHistory.push({ role: 'user', content: msg });
+  await saveChatMessage(chatSubjectId, 'user', msg);
+
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'chat-msg assistant';
+  typingDiv.innerHTML = '<div class="chat-bubble typing"><span></span><span></span><span></span></div>';
+  messagesEl.appendChild(typingDiv);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+
+  const ctx = extractedContext.length > 60000
+    ? extractedContext.slice(0, 60000) + '\n[... gekürzt ...]'
+    : extractedContext;
+
+  const systemPrompt = ctx.length > 50
+    ? `Du bist ein Prüfungsassistent für das Fach "${chatSubjectName}". Hier sind die Unterlagen:\n\n${ctx}\n\nDeine Aufgabe: Beantworte Prüfungsfragen so, dass die Antwort direkt in eine Prüfung kopiert werden kann. Halte dich an folgende Regeln:
+- Antworte immer auf Deutsch
+- Schreibe in vollständigen, klaren Sätzen
+- Strukturiere die Antwort mit Absätzen oder nummerierten Punkten wenn sinnvoll
+- Keine Floskeln wie "Das ist eine gute Frage" - direkt zur Antwort
+- Fachbegriffe korrekt und vollständig ausschreiben
+- Antwortlänge: dem Umfang der Frage angepasst (kurze Frage = kurze Antwort, komplexe Frage = ausführliche Antwort)
+- Basiere dich ausschliesslich auf den Unterlagen`
+    : `Du bist ein Prüfungsassistent für das Fach "${chatSubjectName}". Beantworte Fragen so, dass die Antwort direkt in eine Prüfung kopiert werden kann. Antworte auf Deutsch, präzise und strukturiert.`;
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/claude-proxy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: chatHistory
+      })
+    });
+    const data = await res.json();
+    typingDiv.remove();
+    if (data.content?.[0]?.text) {
+      const reply = data.content[0].text;
+      chatHistory.push({ role: 'assistant', content: reply });
+      const formatted = reply
+        .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g,'<em>$1</em>')
+        .replace(/\n/g,'<br>');
+      appendChatBubble(messagesEl, 'assistant', formatted);
+      await saveChatMessage(chatSubjectId, 'assistant', reply);
+    } else {
+      appendChatBubble(messagesEl, 'assistant', '❌ Fehler: ' + (data.error?.message || 'Unbekannter Fehler'));
+    }
+  } catch(e) {
+    typingDiv.remove();
+    appendChatBubble(messagesEl, 'assistant', '❌ Verbindungsfehler: ' + e.message);
+  }
+}
+
+function scrollChat() {
+  const el = document.getElementById('chat-messages');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
+function switchSettingsTab(tab) {
+  const isSettings = tab === 'settings';
+  document.getElementById('settings-panel').style.display = isSettings ? 'block' : 'none';
+  document.getElementById('chat-panel').style.display = isSettings ? 'none' : 'flex';
+  document.getElementById('settings-tab-btn').style.color = isSettings ? 'var(--accent)' : 'var(--muted)';
+  document.getElementById('settings-tab-btn').style.borderBottomColor = isSettings ? 'var(--accent)' : 'transparent';
+  document.getElementById('chat-tab-btn').style.color = isSettings ? 'var(--muted)' : 'var(--accent)';
+  document.getElementById('chat-tab-btn').style.borderBottomColor = isSettings ? 'transparent' : 'var(--accent)';
+  if (tab === 'chat') { loadGroupMessages(); document.getElementById('chat-badge').style.display = 'none'; }
+}
+
+async function changePassword() {
+  const pw = document.getElementById('new-password').value;
+  const msg = document.getElementById('pw-msg');
+  msg.style.display = 'none';
+  if (pw.length < 6) { msg.textContent = 'Passwort muss min. 6 Zeichen haben.'; msg.style.color = '#dc2626'; msg.style.display = 'block'; return; }
+  const { error } = await supabaseClient.auth.updateUser({ password: pw });
+  if (error) { msg.textContent = error.message; msg.style.color = '#dc2626'; }
+  else { msg.textContent = '✅ Passwort erfolgreich geändert!'; msg.style.color = '#16a34a'; document.getElementById('new-password').value = ''; }
+  msg.style.display = 'block';
+}
+
+function setFontSize(size) {
+  const sizes = { small: '13px', medium: '15px', large: '17px' };
+  document.body.style.fontSize = sizes[size];
+  localStorage.setItem('fontSize', size);
+}
+
+// ─── GROUP CHAT ──────────────────────────────────────────────────────────────
+let groupChatSubscription = null;
+let lastGroupMsgId = null;
+
+async function loadGroupMessages() {
+  const container = document.getElementById('group-messages');
+  container.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;">Lade Nachrichten...</div>';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/group_messages?order=created_at.asc&limit=100`, { headers });
+    const msgs = await res.json();
+    container.innerHTML = '';
+    for (const m of msgs) renderGroupMessage(m, container);
+    container.scrollTop = container.scrollHeight;
+    if (msgs.length) lastGroupMsgId = msgs[msgs.length-1].id;
+  } catch(e) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;">Fehler beim Laden.</div>';
+  }
+  // Realtime polling every 3 seconds
+  if (groupChatSubscription) clearInterval(groupChatSubscription);
+  groupChatSubscription = setInterval(pollGroupMessages, 3000);
+}
+
+async function pollGroupMessages() {
+  try {
+    const filter = lastGroupMsgId ? `&id=gt.${lastGroupMsgId}&order=created_at.asc` : '&order=created_at.asc&limit=100';
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/group_messages?${filter}`, { headers });
+    const msgs = await res.json();
+    if (!msgs.length) return;
+    const container = document.getElementById('group-messages');
+    if (!container) return;
+    for (const m of msgs) renderGroupMessage(m, container);
+    container.scrollTop = container.scrollHeight;
+    lastGroupMsgId = msgs[msgs.length-1].id;
+    // Show badge if not on chat view
+    if (!document.getElementById('view-groupchat').classList.contains('active')) {
+      document.getElementById('chat-badge').style.display = 'inline';
+    }
+  } catch(e) {}
+}
+
+function renderGroupMessage(m, container) {
+  const isMe = m.user_email === currentUser?.email;
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:0.2rem;`;
+  const name = m.user_email.split('@')[0];
+  const time = new Date(m.created_at).toLocaleTimeString('de-CH', {hour:'2-digit',minute:'2-digit'});
+  div.innerHTML = `
+    <div style="font-size:0.72rem;color:var(--muted);">${isMe ? 'Du' : escHtml(name)} · ${time}</div>
+    <div style="background:${isMe?'var(--accent)':'var(--surface2)'};color:${isMe?'white':'var(--text)'};padding:0.6rem 1rem;border-radius:${isMe?'12px 12px 4px 12px':'12px 12px 12px 4px'};max-width:75%;font-size:0.9rem;line-height:1.5;">${escHtml(m.content)}</div>`;
+  container.appendChild(div);
+}
+
+async function sendGroupMessage() {
+  const input = document.getElementById('group-input');
+  const msg = input.value.trim();
+  if (!msg || !currentUser) return;
+  input.value = '';
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/group_messages`, {
+      method: 'POST',
+      headers: { ...headers, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ content: msg, user_email: currentUser.email, user_id: currentUser.id })
+    });
+    await pollGroupMessages();
+  } catch(e) { console.error(e); }
+}
+
+document.addEventListener('keydown', e => {
+  const modal = document.getElementById('chat-modal');
+  if (e.key === 'Enter' && !e.shiftKey && modal.style.display === 'flex') {
+    if (document.activeElement === document.getElementById('chat-input')) {
+      e.preventDefault(); sendChatMessage();
+    }
+  }
+  if (e.key === 'Escape' && modal.style.display === 'flex') closeChat();
+});
+
+// ─── START ────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
