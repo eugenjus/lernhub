@@ -2584,40 +2584,28 @@ async function reportTrip() {
   } catch(e) { toast('Fehler: ' + e.message, 'error'); }
 }
 
-// Load all registered users into trip dropdown
+// Load all registered users into trip dropdown (from profiles table)
 async function loadClassMembers() {
   try {
-    // We get users from existing data (group_messages, chat_messages, late_reports, trips)
-    // to avoid needing admin access to auth.users
-    const sources = await Promise.allSettled([
-      fetch(`${SUPABASE_URL}/rest/v1/group_messages?select=user_email&order=user_email`, { headers }).then(r => r.json()),
-      fetch(`${SUPABASE_URL}/rest/v1/late_reports?select=user_name,user_email`, { headers }).then(r => r.json()),
-      fetch(`${SUPABASE_URL}/rest/v1/trips?select=person_name`, { headers }).then(r => r.json()),
-    ]);
-
-    const nameSet = new Set();
-
-    // From group_messages - use email prefix as name
-    if (sources[0].status === 'fulfilled' && Array.isArray(sources[0].value)) {
-      sources[0].value.forEach(m => { if (m.user_email) nameSet.add(m.user_email.split('@')[0]); });
-    }
-    // From late_reports - use user_name
-    if (sources[1].status === 'fulfilled' && Array.isArray(sources[1].value)) {
-      sources[1].value.forEach(m => { if (m.user_name) nameSet.add(m.user_name); else if (m.user_email) nameSet.add(m.user_email.split('@')[0]); });
-    }
-    // From existing trips - keep names already used
-    if (sources[2].status === 'fulfilled' && Array.isArray(sources[2].value)) {
-      sources[2].value.forEach(t => { if (t.person_name) nameSet.add(t.person_name); });
-    }
-
-    // Always add current user
-    if (currentUser?.email) nameSet.add(currentUser.email.split('@')[0]);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=username,email&order=username.asc`, { headers });
+    const profiles = await res.json();
 
     const select = document.getElementById('trip-name');
     if (!select) return;
-    const sorted = [...nameSet].sort((a, b) => a.localeCompare(b));
+
+    if (!Array.isArray(profiles) || profiles.length === 0) {
+      // Fallback: show at least current user
+      const fallbackName = currentUser?.email?.split('@')[0] || '';
+      select.innerHTML = '<option value="">-- Person auswählen --</option>' +
+        (fallbackName ? `<option value="${escAttr(fallbackName)}">${escHtml(fallbackName)}</option>` : '');
+      return;
+    }
+
     select.innerHTML = '<option value="">-- Person auswählen --</option>' +
-      sorted.map(n => `<option value="${escAttr(n)}">${escHtml(n)}</option>`).join('');
+      profiles.map(p => {
+        const name = p.username || p.email?.split('@')[0] || '';
+        return name ? `<option value="${escAttr(name)}">${escHtml(name)}</option>` : '';
+      }).filter(Boolean).join('');
   } catch(e) { console.warn('loadClassMembers failed:', e); }
 }
 
