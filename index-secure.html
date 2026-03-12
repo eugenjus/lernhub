@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Index</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self';">
+</head>
+<body>
+    <h1>Welcome to the Secure Page</h1>
+    <form id="secureForm">
+        <input type="text" name="userInput" id="userInput" placeholder="Enter some text">
+        <button type="submit">Submit</button>
+    </form>
+    <script>
+        // Input sanitization
+        document.getElementById('secureForm').onsubmit = function(e) {
+            e.preventDefault();
+            let userInput = document.getElementById('userInput').value;
+            userInput = userInput.replace(/<[^>]*>/g, ''); // Remove HTML tags
+            console.log('Sanitized Input:', userInput);
+            // Further processing... using environment variables or secure calls.
+        };
+        
+        // CSRF protection could be implemented with tokens (not shown here due to complexity)
+        // File validation checks can be added in a server-side script as well
+        // Rate limiting can be implemented via server configurations 
+        // XSS prevention by validating and escaping inputs
+    </script>
+</body>
+</html>
